@@ -3,7 +3,7 @@ import logging
 import os
 import sys
 from datetime import datetime
-from src.document_processing.parser import parse_regulatory_documents
+from src.document_processing.parser import parse_regulatory_documents, parse_sop_document
 
 
 def setup_logging():
@@ -52,12 +52,11 @@ def main():
         logger.info("Document processing phase starting...")
 
         # parse SOP (DOCS)
+        parse_sop_document(args.sop_path, parsed_data_dir)
 
         # parse regulation files (PDF)
         parse_regulatory_documents(args.regulatory_path, parsed_data_dir)
 
-        
-        
         # # TODO: Import and call analysis modules
         # logger.info("Analysis phase starting...")
         # # from src.analysis import analyze_compliance
