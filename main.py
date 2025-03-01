@@ -2,9 +2,12 @@ import argparse
 import logging
 import os
 import sys
+from dotenv import load_dotenv
 from datetime import datetime
-from src.document_processing.parser import parse_regulatory_documents, parse_sop_document
-
+from src.parser import parse_regulatory_documents, parse_sop_document
+from src.extractor import extract_clauses
+from langchain_anthropic import ChatAnthropic
+import json
 
 def setup_logging():
     """Set up basic logging configuration."""
@@ -32,6 +35,7 @@ def main():
     
     args = parser.parse_args()
     logger = setup_logging()
+    load_dotenv()
 
     output_dir = "output"
     os.makedirs(output_dir, exist_ok=True)
@@ -39,6 +43,9 @@ def main():
     # Create output directory for parsed data
     parsed_data_dir = "parsed_data"
     os.makedirs(parsed_data_dir, exist_ok=True)
+
+    clause_dir = "clauses"
+    os.makedirs(clause_dir, exist_ok=True)
     
     # Log basic information
     logger.info("Starting Regulatory Compliance Document Processor")
@@ -46,26 +53,31 @@ def main():
     logger.info(f"Regulatory Documents Path: {args.regulatory_path}")
     logger.info(f"Output Directory: {output_dir}")
 
+    logger.info("Initializing LangChain Anthropic client")
+    anthropic_client = ChatAnthropic(
+        api_key=os.getenv("ANTHROPIC_API_KEY"),
+        model="claude-3-5-sonnet-20240620",
+        temperature=0.1
+    )
 
     try:
         # Import and call document processing modules
         logger.info("Document processing phase starting...")
 
         # parse SOP (DOCS)
-        parse_sop_document(args.sop_path, parsed_data_dir)
+        # parse_sop_document(args.sop_path, parsed_data_dir)
 
         # parse regulation files (PDF)
-        parse_regulatory_documents(args.regulatory_path, parsed_data_dir)
+        # parse_regulatory_documents(args.regulatory_path, parsed_data_dir)
 
-        # # TODO: Import and call analysis modules
-        # logger.info("Analysis phase starting...")
-        # # from src.analysis import analyze_compliance
-        # # compliance_results = analyze_compliance(sop_content, reg_documents)
-        
-        # # TODO: Import and call reporting modules
-        # logger.info("Report generation phase starting...")
-        # # from src.reporting import generate_report
-        # # generate_report(compliance_results, output_dir)
+        # TODO: Extract clauses from regulatory documents
+        extract_clauses("parsed_data/parsed_regulation_files", clause_dir)
+
+        # TODO: Init VectorDB to stored extracted clauses
+
+        # TODO: Analyize SOP using Langchain + Anthropic API
+
+        # TODO: Generate Report using Langchain + Anthropic API
         
         logger.info("Processing completed successfully")
         

@@ -57,39 +57,20 @@ def parse_regulatory_documents(regulatory_dir, output_dir):
 
 
 def parse_sop_document(sop_path, output_dir):
-    """
-    Very simple function to parse SOP document in DOCX format.
-    
-    Args:
-        sop_path (str): Path to the SOP file
-        output_dir (str): Directory to save parsed output
-        
-    Returns:
-        str: Raw text content from the SOP
-    """
     logger.info(f"Parsing SOP document: {sop_path}")
-    
-    # Create parsed_sop directory under the specified output_dir
     parsed_sop_dir = os.path.join(output_dir, "parsed_sop")
     os.makedirs(parsed_sop_dir, exist_ok=True)
     
     try:
-        # Check file format
         if not sop_path.lower().endswith('.docx'):
             raise ValueError(f"Expected DOCX file format for SOP, got: {sop_path}")
         
-        # Parse the document - simplest possible approach
         doc = docx.Document(sop_path)
-        
-        # Extract all text from paragraphs
         full_text = []
         for para in doc.paragraphs:
             full_text.append(para.text)
         
-        # Join with newlines
         content = '\n'.join(full_text)
-        
-        # Save the text content to a file
         sop_name = Path(sop_path).stem
         output_file = os.path.join(parsed_sop_dir, f"{sop_name}.txt")
         

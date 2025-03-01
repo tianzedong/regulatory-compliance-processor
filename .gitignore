@@ -173,3 +173,5 @@ cython_debug/
 logs/
 parsed_data/
 output/
+clauses/
+testing.ipynb
