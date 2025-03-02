@@ -78,7 +78,7 @@ def main():
 
         # Init VectorDB to stored extracted clauses
         collection = initialize_chroma_collection()
-        add_clauses_to_vectordb(collection, clauses_dir)
+        add_clauses_to_vectordb(collection, clauses_dir, chunk_size=300)
 
 
         # TODO: Analyize SOP using Langchain + Anthropic API

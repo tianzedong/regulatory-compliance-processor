@@ -4,6 +4,9 @@ import logging
 import chromadb
 import chromadb.utils.embedding_functions as embedding_functions
 from collections import defaultdict
+import math
+from typing import List, Dict
+
 
 
 
@@ -45,84 +48,106 @@ def flatten_clauses(clause_obj):
     return flattened
 
 
-def load_clauses(clauses_dir):
+def load_clauses(clauses_dir: str) -> List[Dict]:
     """
     Load all extracted clauses from JSON files in a directory.
-    Each file's name is used as a doc_id prefix for its clauses.
-    Returns a list of clauses, where each clause has:
-      {
-        "id": "1.1",            # original JSON ID
-        "text": "...",
-        "doc_id": "filename"    # derived from filename
-      }
+    Each file's name is used to derive doc_id (stripping last 8 chars if present).
+    Returns a list of {'doc_id':..., 'id':..., 'text':...}.
     """
     all_clauses = []
-
     for filename in os.listdir(clauses_dir):
         if filename.lower().endswith(".json"):
             filepath = os.path.join(clauses_dir, filename)
             doc_id, _ = os.path.splitext(filename)
-            
+
+            # If you only remove "_clauses" if it exists:
+            if doc_id.endswith("_clauses"):
+                doc_id = doc_id[:-8]  # remove last 8 chars
+
             with open(filepath, "r", encoding="utf-8") as f:
                 try:
-                    data = json.load(f)  # Expect a list of clauses
-                    if not isinstance(data, list):
-                        logger.warning(f"File {filename} did not contain a list. Skipping.")
-                        continue
-
-                    for clause_obj in data:
-                        flattened = flatten_clauses(clause_obj)
-
-                        for item in flattened:
-                            item["doc_id"] = doc_id[:-8] # remove last eight chars which are "_clauses"
-                            all_clauses.append(item)
-
+                    data = json.load(f)
                 except json.JSONDecodeError:
                     logger.error(f"Error decoding JSON in file: {filename}")
+                    continue
 
+                if not isinstance(data, list):
+                    logger.warning(f"File {filename} did not contain a list. Skipping.")
+                    continue
+
+                for clause_obj in data:
+                    flattened = flatten_clauses(clause_obj)
+                    for item in flattened:
+                        item["doc_id"] = doc_id
+                        all_clauses.append(item)
     return all_clauses
 
 
-def add_clauses_to_vectordb(collection, clauses_dir):
+def assign_unique_ids(clauses: List[Dict]) -> List[Dict]:
     """
-    Loads clauses from clauses_dir and adds them to the given Chroma collection.
-    Combines doc_id + clause_id for a stable ID, and if it appears multiple times,
-    we append a numeric suffix to keep them unique.
+    For each clause, combine doc_id + id into a base_id, then if repeated,
+    append a numeric suffix: e.g., 'DOC-1.1-2' for a 2nd occurrence in the same dataset.
+    Updates clauses in place, returns the same list.
     """
-    logger.info("Loading extracted clauses")
-    clauses = load_clauses(clauses_dir)
-
-    documents = []
-    metadatas = []
-    ids = []
-
-    # Track how many times each base ID appears
     id_counter = defaultdict(int)
-
     for clause in clauses:
         base_id = f"{clause['doc_id']}-{clause['id']}"
         id_counter[base_id] += 1
+        # If first occurrence, stable_id = base_id
         if id_counter[base_id] == 1:
-            stable_id = base_id
+            clause["stable_id"] = base_id
         else:
-            stable_id = f"{base_id}-{id_counter[base_id]}"
+            # Append suffix for repeated base_id
+            clause["stable_id"] = f"{base_id}-{id_counter[base_id]}"
+    return clauses
 
-        documents.append(clause["text"])
-        metadatas.append({
-            "doc_id": clause["doc_id"],
-            "clause_id": clause["id"]
-        })
-        ids.append(stable_id)
 
-    logger.info(f"Adding {len(documents)} clauses to Chroma collection.")
+def chunked_upsert(collection, data: List[Dict], chunk_size: int = 500):
+    """
+    Upsert data into Chroma in batches, logging progress instead of using tqdm.
+    Each item in 'data' should have 'stable_id', 'text', 'doc_id', and 'id'.
+    """
+    total = len(data)
+    if total == 0:
+        logger.warning("No data to upsert.")
+        return
 
-    if documents:
-        collection.upsert(
-            documents=documents,
-            metadatas=metadatas,
-            ids=ids
+    logger.info(f"Starting upsert of {total} items in chunks of {chunk_size}.")
+    num_chunks = math.ceil(total / chunk_size)
+
+    for chunk_idx in range(num_chunks):
+        start_idx = chunk_idx * chunk_size
+        end_idx = min(start_idx + chunk_size, total)
+        batch = data[start_idx:end_idx]
+
+        documents = [item["text"] for item in batch]
+        metadatas = [{"doc_id": item["doc_id"], "clause_id": item["id"]} for item in batch]
+        ids = [item["stable_id"] for item in batch]
+
+        collection.upsert(documents=documents, metadatas=metadatas, ids=ids)
+        logger.info(
+            f"Upserted chunk {chunk_idx + 1}/{num_chunks} "
+            f"with {len(batch)} items (total up to {end_idx}/{total})."
         )
-    else:
-        logger.warning("No clauses found. Nothing was added to the collection.")
 
-    logger.info(f"Collection now has {collection.count()} items.")
+    logger.info(f"Completed upsert. Collection count is now {collection.count()}.")
+
+
+def add_clauses_to_vectordb(collection: object, clauses_dir: str, chunk_size: int = 1000):
+    """
+    Main entry: loads clauses from a directory, assigns unique stable IDs,
+    then upserts them to the collection in batches.
+    """
+    logger.info("Loading extracted clauses...")
+    clauses = load_clauses(clauses_dir)
+    logger.info(f"Loaded {len(clauses)} clauses from {clauses_dir}.")
+
+    if not clauses:
+        logger.warning("No clauses found. Exiting.")
+        return
+
+    logger.info("Assigning unique IDs (doc_id + clause_id + optional suffix).")
+    clauses = assign_unique_ids(clauses)
+
+    logger.info(f"Beginning chunked upsert with batch size={chunk_size}.")
+    chunked_upsert(collection, clauses, chunk_size)
