@@ -176,3 +176,5 @@ output/
 clauses/
 testing.ipynb
 ds_parsing.ipynb
+local_db/
+sample_json/
