@@ -6,8 +6,10 @@ from dotenv import load_dotenv
 from datetime import datetime
 from src.parser import parse_regulatory_documents, parse_sop_document
 from src.extractor import extract_clauses
+from src.vector_db import initialize_chroma_collection, add_clauses_to_vectordb
 from langchain_anthropic import ChatAnthropic
 import json
+import chromadb
 
 def setup_logging():
     """Set up basic logging configuration."""
@@ -44,8 +46,8 @@ def main():
     parsed_data_dir = "parsed_data"
     os.makedirs(parsed_data_dir, exist_ok=True)
 
-    clause_dir = "clauses"
-    os.makedirs(clause_dir, exist_ok=True)
+    clauses_dir = "clauses"
+    os.makedirs(clauses_dir, exist_ok=True)
     
     # Log basic information
     logger.info("Starting Regulatory Compliance Document Processor")
@@ -53,6 +55,7 @@ def main():
     logger.info(f"Regulatory Documents Path: {args.regulatory_path}")
     logger.info(f"Output Directory: {output_dir}")
 
+    # init LangChain Client
     logger.info("Initializing LangChain Anthropic client")
     anthropic_client = ChatAnthropic(
         api_key=os.getenv("ANTHROPIC_API_KEY"),
@@ -65,15 +68,18 @@ def main():
         logger.info("Document processing phase starting...")
 
         # parse SOP (DOCS)
-        # parse_sop_document(args.sop_path, parsed_data_dir)
+        parse_sop_document(args.sop_path, parsed_data_dir)
 
         # parse regulation files (PDF)
-        # parse_regulatory_documents(args.regulatory_path, parsed_data_dir)
+        parse_regulatory_documents(args.regulatory_path, parsed_data_dir)
 
-        # TODO: Extract clauses from regulatory documents
-        extract_clauses("parsed_data/parsed_regulation_files", clause_dir)
+        # extract clauses from parsed regulation files
+        extract_clauses("parsed_data/parsed_regulation_files", clauses_dir)
 
-        # TODO: Init VectorDB to stored extracted clauses
+        # Init VectorDB to stored extracted clauses
+        # collection = initialize_chroma_collection()
+        # add_clauses_to_vectordb(collection, clauses_dir)
+
 
         # TODO: Analyize SOP using Langchain + Anthropic API
 
