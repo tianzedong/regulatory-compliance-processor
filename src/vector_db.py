@@ -6,6 +6,7 @@ import chromadb.utils.embedding_functions as embedding_functions
 from collections import defaultdict
 import math
 from typing import List, Dict
+from tqdm import tqdm
 
 
 
@@ -102,10 +103,10 @@ def assign_unique_ids(clauses: List[Dict]) -> List[Dict]:
     return clauses
 
 
-def chunked_upsert(collection, data: List[Dict], chunk_size: int = 500):
+def chunked_upsert(collection: object, data: List[Dict], chunk_size: int = 1000):
     """
-    Upsert data into Chroma in batches, logging progress instead of using tqdm.
-    Each item in 'data' should have 'stable_id', 'text', 'doc_id', and 'id'.
+    Upsert data into Chroma in batches, showing progress via tqdm.
+    Each item in 'data' should have 'stable_id', 'text', and 'doc_id', 'id'.
     """
     total = len(data)
     if total == 0:
@@ -113,22 +114,15 @@ def chunked_upsert(collection, data: List[Dict], chunk_size: int = 500):
         return
 
     logger.info(f"Starting upsert of {total} items in chunks of {chunk_size}.")
-    num_chunks = math.ceil(total / chunk_size)
+    with tqdm(total=total, desc="Upserting clauses", unit="clause") as pbar:
+        for i in range(0, total, chunk_size):
+            batch = data[i : i + chunk_size]
+            documents = [item["text"] for item in batch]
+            metadatas = [{"doc_id": item["doc_id"], "clause_id": item["id"]} for item in batch]
+            ids = [item["stable_id"] for item in batch]
 
-    for chunk_idx in range(num_chunks):
-        start_idx = chunk_idx * chunk_size
-        end_idx = min(start_idx + chunk_size, total)
-        batch = data[start_idx:end_idx]
-
-        documents = [item["text"] for item in batch]
-        metadatas = [{"doc_id": item["doc_id"], "clause_id": item["id"]} for item in batch]
-        ids = [item["stable_id"] for item in batch]
-
-        collection.upsert(documents=documents, metadatas=metadatas, ids=ids)
-        logger.info(
-            f"Upserted chunk {chunk_idx + 1}/{num_chunks} "
-            f"with {len(batch)} items (total up to {end_idx}/{total})."
-        )
+            collection.upsert(documents=documents, metadatas=metadatas, ids=ids)
+            pbar.update(len(batch))
 
     logger.info(f"Completed upsert. Collection count is now {collection.count()}.")
 
