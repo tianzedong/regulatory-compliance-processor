@@ -74,11 +74,11 @@ def main():
         # parse_regulatory_documents(args.regulatory_path, parsed_data_dir)
 
         # extract clauses from parsed regulation files
-        extract_clauses("parsed_data/parsed_regulation_files", clauses_dir)
+        # extract_clauses("parsed_data/parsed_regulation_files", clauses_dir)
 
         # Init VectorDB to stored extracted clauses
-        # collection = initialize_chroma_collection()
-        # add_clauses_to_vectordb(collection, clauses_dir)
+        collection = initialize_chroma_collection()
+        add_clauses_to_vectordb(collection, clauses_dir)
 
 
         # TODO: Analyize SOP using Langchain + Anthropic API
