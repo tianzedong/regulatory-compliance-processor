@@ -145,3 +145,86 @@ def add_clauses_to_vectordb(collection: object, clauses_dir: str, chunk_size: in
 
     logger.info(f"Beginning chunked upsert with batch size={chunk_size}.")
     chunked_upsert(collection, clauses, chunk_size)
+
+
+def retrieve_relevant_clauses_for_sop(
+    sop_path: str,
+    collection,
+    chunk_size: int = 200,
+    overlap: int = 50,
+    top_n: int = 3
+):
+    """
+    1) Read the SOP text file.
+    2) Split it into chunks.
+    3) For each chunk, query the Chroma collection to get top_n relevant clauses.
+    4) Return a list of dicts like:
+       [
+         {
+           "chunk_text": "...",
+           "relevant_clauses": [
+             {"id": "...", "text": "...", "metadata": {...}, "distance": ...},
+             ...
+           ]
+         },
+         ...
+       ]
+    """
+    # 1) Read SOP text
+    with open(sop_path, "r", encoding="utf-8") as f:
+        sop_text = f.read()
+
+    # 2) Chunk the SOP
+    chunks = chunk_text(sop_text, chunk_size=chunk_size, overlap=overlap)
+
+    results = []
+    for chunk in chunks:
+        # 3) Query Chroma with this chunk
+        query_res = collection.query(
+            query_texts=[chunk],
+            n_results=top_n
+        )
+        # query_res is typically a dict with keys: "ids", "documents", "metadatas", "distances"
+
+        # We'll assemble them for the first (and only) query in query_texts
+        chunk_clauses = []
+        if query_res and query_res.get("ids") and len(query_res["ids"]) > 0:
+            for i, doc_id in enumerate(query_res["ids"][0]):
+                chunk_clauses.append({
+                    "id": doc_id,
+                    "text": query_res["documents"][0][i],
+                    "metadata": query_res["metadatas"][0][i],
+                    "distance": query_res["distances"][0][i]
+                })
+
+        results.append({
+            "chunk_text": chunk,
+            "relevant_clauses": chunk_clauses
+        })
+
+    return results
+
+
+def chunk_text(text: str, chunk_size: int = 100, overlap: int = 25):
+    """
+    Splits text into chunks of roughly 'chunk_size' words
+    with 'overlap' words repeating between consecutive chunks.
+    Example: If chunk_size=200 and overlap=50, each chunk is 200 words,
+    and the next chunk starts 150 words after the previous.
+    """
+    words = text.split()
+    total_words = len(words)
+    chunks = []
+    start = 0
+
+    while start < total_words:
+        end = start + chunk_size
+        chunk_words = words[start:end]
+        # Build the chunk string
+        chunk_str = " ".join(chunk_words)
+        chunks.append(chunk_str)
+
+        # Move start forward by chunk_size - overlap
+        start += (chunk_size - overlap)
+
+    return chunks

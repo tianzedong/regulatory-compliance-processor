@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from datetime import datetime
 from src.parser import parse_regulatory_documents, parse_sop_document
 from src.extractor import extract_clauses
-from src.vector_db import initialize_chroma_collection, add_clauses_to_vectordb
+from src.vector_db import initialize_chroma_collection, add_clauses_to_vectordb, retrieve_relevant_clauses_for_sop
 from langchain_anthropic import ChatAnthropic
 import json
 import chromadb
@@ -80,10 +80,16 @@ def main():
         collection = initialize_chroma_collection()
         add_clauses_to_vectordb(collection, clauses_dir, chunk_size=100)
 
+        # Analyize SOP and Generate Report using Langchain + Anthropic API
+        retried_clauses = retrieve_relevant_clauses_for_sop(
+            os.path.join(parsed_data_dir, "parsed_sop/original.txt"),
+            collection,
+            chunk_size=100,
+            overlap=25,
+            top_n=3
+        )
 
-        # TODO: Analyize SOP using Langchain + Anthropic API
-
-        # TODO: Generate Report using Langchain + Anthropic API
+        
         
         logger.info("Processing completed successfully")
         
