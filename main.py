@@ -68,10 +68,10 @@ def main():
         logger.info("Document processing phase starting...")
 
         # parse SOP (DOCS)
-        parse_sop_document(args.sop_path, parsed_data_dir)
+        # parse_sop_document(args.sop_path, parsed_data_dir)
 
         # parse regulation files (PDF)
-        parse_regulatory_documents(args.regulatory_path, parsed_data_dir)
+        # parse_regulatory_documents(args.regulatory_path, parsed_data_dir)
 
         # extract clauses from parsed regulation files
         extract_clauses("parsed_data/parsed_regulation_files", clauses_dir)

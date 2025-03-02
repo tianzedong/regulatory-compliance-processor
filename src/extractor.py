@@ -1,6 +1,9 @@
 import re
 import json
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 def compile_patterns():
     """Compile regex patterns for different clause formats."""
@@ -126,7 +129,10 @@ def extract(text):
     lines = text.splitlines()
     style = detect_format(lines)
     if not style:
-        return []  # No recognizable clause format
+        logger.warning("No recognizable clause format detected in file.")
+        return []
+    else:
+        logger.info(f"Detected format: {style}")
 
     header_pat = get_header_pattern(style)
     clauses = []
@@ -147,6 +153,8 @@ def extract(text):
                 continue
             process_line(line, current_clause)
 
+    clauses = filter_clauses(clauses)
+
     if current_clause:
         current_clause['text'] = current_clause['text'].rstrip()
         clauses.append(current_clause)
@@ -154,6 +162,50 @@ def extract(text):
     if style == 'decimal':
         return build_decimal_hierarchy(clauses)
     return clauses
+
+def split_large_entries(clauses, sentences_per_chunk=5):
+    """
+    For each clause in clauses, if its text has more than 'sentences_per_chunk' sentences,
+    split it into multiple entries each containing up to 'sentences_per_chunk' sentences.
+    """
+    logger.info("Splitting large entries into smaller chunks.")
+    new_clauses = []
+    for clause in clauses:
+        # Split text into sentences using punctuation followed by whitespace.
+        sentences = re.split(r'(?<=[.!?])\s+', clause["text"].strip())
+        if len(sentences) > sentences_per_chunk:
+            parts = [ " ".join(sentences[i:i+sentences_per_chunk]).strip() 
+                      for i in range(0, len(sentences), sentences_per_chunk) ]
+            for idx, part in enumerate(parts, start=1):
+                new_clause = {
+                    "id": f"{clause['id']}-part-{idx}",
+                    "text": part
+                }
+                new_clauses.append(new_clause)
+        else:
+            new_clauses.append(clause)
+    logger.info(f"After splitting, total clauses: {len(new_clauses)}")
+    return new_clauses
+
+
+def filter_clauses(clauses):
+    """
+    Filter out clauses with empty text, text length less than 5 characters,
+    or that contain a sequence of non-English characters (length > 5).
+    """
+    filtered = []
+    # Regex for sequences of 6 or more non-English characters
+    pattern_non_english = re.compile(r'[^A-Za-z0-9\s]{6,}')
+    for clause in clauses:
+        text = clause["text"].strip()
+        if not text:
+            continue
+        if len(text) < 5:
+            continue
+        if pattern_non_english.search(text):
+            continue
+        filtered.append(clause)
+    return filtered
 
 def extract_clauses(input_dir, output_dir):
     os.makedirs(output_dir, exist_ok=True)
@@ -164,7 +216,13 @@ def extract_clauses(input_dir, output_dir):
         with open(file_path, "r", encoding="utf-8") as f:
             text = f.read()
 
+        logger.info(f"Extracting file: {txt_file}.")
         clauses = extract(text)
+        
+        if len(clauses) < 5:
+            logger.info(f"File '{txt_file}' has less than 5 clauses. Checking for large entries to split.")
+            clauses = split_large_entries(clauses)
+
         base_name = os.path.splitext(txt_file)[0]
         output_path = os.path.join(output_dir, f"{base_name}_clauses.json")
 
