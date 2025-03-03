@@ -178,3 +178,4 @@ testing.ipynb
 ds_parsing.ipynb
 local_db/
 sample_json/
+.DS_Store
