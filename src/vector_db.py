@@ -170,6 +170,7 @@ def retrieve_relevant_clauses_for_sop(
          ...
        ]
     """
+    logger.info("Start retrieving relevant clauses...")
     # 1) Read SOP text
     with open(sop_path, "r", encoding="utf-8") as f:
         sop_text = f.read()
