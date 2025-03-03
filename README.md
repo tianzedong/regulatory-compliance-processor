@@ -1,54 +1,65 @@
 # Regulatory Compliance Document Processor
-<!-- overview, objectives, project setup and technologies, testing, help, bonus, evaluation, good luck -->
+
 ## Overview
 
-This project is a coding assignment for our startup focused on regulatory compliance. The goal is to build a tool that processes a Standard Operating Procedure (SOP) document along with multiple regulatory documents. The tool should:
+This tool analyzes Standard Operating Procedures (SOPs) against regulatory documents to ensure compliance. It uses natural language processing and semantic search to:
+1. Parse regulatory documents and SOPs
+2. Extract regulatory clauses from documents
+3. Find clauses relevant to the SOP
+4. Generate a compliance analysis report with recommendations
 
-- **Extract all regulatory clauses** from each regulatory document.
-- **Find the clauses that are relevant to the SOP**
-- **Determine and suggest adjustments** for the SOP based on the extracted regulatory requirements.
-  
-There is no one “right” solution. We’re interested in how you design the solution, structure your code, and document your approach.
+## Features
+- Document Parsing: Extract text from PDF regulatory documents and SOPs
+- Clause Extraction: Identify and isolate specific regulatory clauses
+- Semantic Search: Use vector embedding to find relevant regulations
+- Compliance Analysis: Determine SOP compliance with regulatory requirements
+- Report Generation: Create detailed compliance reports with recommendations
 
-## Objectives
+## Set up
+```Bash
+# Clone the repository
+git clone https://github.com/tianzedong/regulatory-compliance-processor
+cd regulatory-compliance-processor
 
-- **Input:** 
-  - One SOP document (`data/sop.pdf`)
-  - 10–20 regulatory documents in the `data/regulatory_docs/` directory. Note: We have provided 10 for you to get started.
-- **Functionality:**
-  - Load and parse the SOP and regulatory documents.
-  - Identify and extract regulatory clauses from the regulatory documents.
-  - Apply relevant clauses to analyze the SOP document.
+# Create and activate conda environment
+conda create -n regulatory-env python=3.11
+conda activate regulatory-env
 
-- **Output:**
-  - A report or log that details the regulatory compliance analysis, highlighting any discrepancies between the SOP and the regulatory requirements.
-  - (Optional but preferred) Provide a web interface for the internal dev team to interact with the tool.
+# Install dependencies
+pip install -r requirements.txt
+```
 
-## Project Setup and Technologies
+## Configuration
 
-- **Project Setup:**
-  - Use any programming language of your choice (Python is preferred).
-  - Write clean, and modular code.
+Create a `.env` file in the root directory with the following environment variables:
 
-- **Technologies:**
-  - Semantic Search
-  - Vector DBs
-  - LLMs
-  - QA Models
-  - Langchain
-  - python-docx
+```bash
+# API keys for language models
+ANTHROPIC_API_KEY=your_anthropic_api_key_here
 
-None of the above technologies are required. Feel free to use any other technologies you want.
+# we also use langsmith to trace LLM's input&output
+LANGSMITH_TRACING=true
+LANGSMITH_ENDPOINT="https://api.smith.langchain.com"
+LANGSMITH_API_KEY=your_langsmith_api_key_here
+LANGSMITH_PROJECT=your_langsmith_project_name
+```
 
-## Help
+## Usage 
+``` Bash
+# first time running
+python main.py path/to/sop.docx path/to/regulations/folder --add_new_clauses
 
-If you want help/guidance, please reach out to me: aaryan@getinterface.ai
+# if you want to skip adding clauses
+python main.py path/to/sop.docx path/to/regulations/folder
+```
 
-Remember, **this is YOUR code**
-  - Do whatever you want with the code
-  - Make it work
-  - Aim for accuracy over speed
-  - Aim for scalability and maintainability
+## Technologies
+This project leverages several technologies to analyze regulatory compliance:
 
-## Good Luck!
-We're excited to see your implementation that balances technical prowess with elegant regulatory compliance skills. Happy coding!
+- Python: Core programming language
+- LangChain: Framework for working with large language models
+- Anthropic Claude: LLM for understanding regulatory context and generating compliance insights
+- ChromaDB: Vector database for semantic search of regulatory clauses
+- Sentence Transformers: For generating embeddings of regulatory text
+- PyPDF2/docx: Document parsing for regulatory documents and SOPs
+- LangSmith: For tracing and monitoring LLM performance

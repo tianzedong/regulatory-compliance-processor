@@ -21,7 +21,7 @@ def initialize_chroma_collection(
     Initialize a ChromaDB collection with an embedding function.
     Returns the collection object.
     """
-    logger.info("Initializing ChromaDB Collection with an embedding function")
+    logger.info("Starting local ChromaDB Collection")
     ef = embedding_functions.DefaultEmbeddingFunction()
     client = chromadb.PersistentClient(path=persist_directory)
 
@@ -61,7 +61,6 @@ def load_clauses(clauses_dir: str) -> List[Dict]:
             filepath = os.path.join(clauses_dir, filename)
             doc_id, _ = os.path.splitext(filename)
 
-            # If you only remove "_clauses" if it exists:
             if doc_id.endswith("_clauses"):
                 doc_id = doc_id[:-8]  # remove last 8 chars
 
@@ -171,23 +170,16 @@ def retrieve_relevant_clauses_for_sop(
        ]
     """
     logger.info("Start retrieving relevant clauses...")
-    # 1) Read SOP text
     with open(sop_path, "r", encoding="utf-8") as f:
         sop_text = f.read()
-
-    # 2) Chunk the SOP
     chunks = chunk_text(sop_text, chunk_size=chunk_size, overlap=overlap)
 
     results = []
     for chunk in chunks:
-        # 3) Query Chroma with this chunk
         query_res = collection.query(
             query_texts=[chunk],
             n_results=top_n
         )
-        # query_res is typically a dict with keys: "ids", "documents", "metadatas", "distances"
-
-        # We'll assemble them for the first (and only) query in query_texts
         chunk_clauses = []
         if query_res and query_res.get("ids") and len(query_res["ids"]) > 0:
             for i, doc_id in enumerate(query_res["ids"][0]):

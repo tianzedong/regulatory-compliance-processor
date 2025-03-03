@@ -58,8 +58,6 @@ def parse_regulatory_documents(regulatory_dir, output_dir):
 
 def parse_sop_document(sop_path, output_dir):
     logger.info(f"Parsing SOP document: {sop_path}")
-    parsed_sop_dir = os.path.join(output_dir, "parsed_sop")
-    os.makedirs(parsed_sop_dir, exist_ok=True)
     
     try:
         if not sop_path.lower().endswith('.docx'):
@@ -71,8 +69,7 @@ def parse_sop_document(sop_path, output_dir):
             full_text.append(para.text)
         
         content = '\n'.join(full_text)
-        sop_name = Path(sop_path).stem
-        output_file = os.path.join(parsed_sop_dir, f"{sop_name}.txt")
+        output_file = os.path.join(output_dir, f"parsed_sop.txt")
         
         with open(output_file, 'w', encoding='utf-8') as f:
             f.write(content)

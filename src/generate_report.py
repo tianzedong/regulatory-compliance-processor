@@ -45,6 +45,17 @@ Please provide a detailed compliance analysis. Structure your output in Markdown
     return prompt
 
 def generate_report(sop_path, retrieved_chunks, anthropic_client):
+    """
+    Generates a report by analyzing the SOP (Standard Operating Procedure) text and retrieved chunks using the provided anthropic client.
+
+    Args:
+        sop_path (str): The file path to the SOP document.
+        retrieved_chunks (list): A list of text chunks retrieved for analysis.
+        anthropic_client (object): An instance of the anthropic client used to invoke the analysis API.
+
+    Returns:
+        object: The response from the anthropic client after processing the prompt.
+    """
     # Call the API. If the client returns an object, adjust to access its content.
     logger.info("Start generating analysis of the SOP...")
     with open(sop_path, "r", encoding="utf-8") as f:

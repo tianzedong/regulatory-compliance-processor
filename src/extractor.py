@@ -131,8 +131,8 @@ def extract(text):
     if not style:
         logger.warning("No recognizable clause format detected in file.")
         return []
-    else:
-        logger.info(f"Detected format: {style}")
+    # else:
+    #     logger.info(f"Detected format: {style}")
 
     header_pat = get_header_pattern(style)
     clauses = []
@@ -225,6 +225,7 @@ def extract_clauses(input_dir, output_dir):
 
         base_name = os.path.splitext(txt_file)[0]
         output_path = os.path.join(output_dir, f"{base_name}_clauses.json")
+        logger.info(f"Extracted file: {txt_file}.")
 
         with open(output_path, "w", encoding="utf-8") as out_f:
             json.dump(clauses, out_f, indent=2)
