@@ -47,10 +47,10 @@ LANGSMITH_PROJECT=your_langsmith_project_name
 ## Usage 
 ``` Bash
 # first time running
-python main.py path/to/sop.docx path/to/regulations/folder --add_new_clauses
+python main.py data/sop/original.docx  data/regulations --add_new_clauses
 
 # if you want to skip adding clauses
-python main.py path/to/sop.docx path/to/regulations/folder
+python main.py data/sop/original.docx  data/regulations
 ```
 Note that upserting clauses could take 5-6 mins for the first time running the code. 
 
