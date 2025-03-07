@@ -52,6 +52,7 @@ python main.py path/to/sop.docx path/to/regulations/folder --add_new_clauses
 # if you want to skip adding clauses
 python main.py path/to/sop.docx path/to/regulations/folder
 ```
+Note that upserting clauses could take 5-6 mins for the first time running the code. 
 
 ## Technologies
 This project leverages several technologies to analyze regulatory compliance:

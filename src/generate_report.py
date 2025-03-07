@@ -71,6 +71,6 @@ def save_markdown(content, file_path="output/annotated_sop_report.md"):
     :param content: Markdown formatted text to save.
     :param file_path: Path to the file where the content will be saved (should end with '.md').
     """
-    logger.info(f"Results saved as markdown file to path{file_path}")
+    logger.info(f"Results saved as markdown file to path {file_path}")
     with open(file_path, "w", encoding="utf-8") as f:
         f.write(content)
